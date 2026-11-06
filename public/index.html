@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="dark light">
+  <title>QR Transfer</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script type="module" src="/static/js/upload.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="brand">
+      <h1>QR Transfer</h1>
+      <p class="muted">End-to-end encrypted file transfer over animated QR codes.</p>
+    </header>
+
+    <section id="pick" class="card">
+      <label id="drop" class="drop" for="file">
+        <input id="file" type="file">
+        <strong id="dropTitle">Choose a file</strong>
+        <span id="dropHint" class="muted">or drop it here</span>
+        <span id="limit" class="muted small"></span>
+      </label>
+
+      <dl id="summary" class="facts" hidden>
+        <dt>File</dt><dd id="fileName"></dd>
+        <dt>Size</dt><dd id="fileSize"></dd>
+        <dt>Transfer</dt><dd id="estimate"></dd>
+      </dl>
+
+      <div class="options">
+        <label class="field">
+          <span>Expires after</span>
+          <select id="ttl"></select>
+        </label>
+        <label class="field">
+          <span>QR speed <output id="fpsOut"></output></span>
+          <input id="fps" type="range" step="1">
+        </label>
+      </div>
+
+      <button id="send" class="primary" type="button" disabled>Encrypt &amp; upload</button>
+    </section>
+
+    <section id="progress" class="card" hidden>
+      <p id="stage">Encrypting…</p>
+      <progress id="bar" max="1" value="0"></progress>
+    </section>
+
+    <section id="done" class="card" hidden>
+      <h2>Ready to transfer</h2>
+      <p class="muted">Share this link with the recipient. Opening it shows the animated QR code for the Android app.</p>
+      <div class="share">
+        <input id="link" type="text" readonly aria-label="Share link">
+        <button id="copy" type="button">Copy</button>
+      </div>
+      <p class="muted small" id="expires"></p>
+      <div class="row">
+        <a id="open" class="button primary" target="_blank" rel="noopener noreferrer">Open transfer page</a>
+        <button id="delete" type="button" class="danger">Delete now</button>
+        <button id="again" type="button">Send another</button>
+      </div>
+    </section>
+
+    <p id="error" class="error" role="alert" hidden></p>
+
+    <footer class="muted small">
+      Your file is encrypted in this browser before upload. The key is the part of the link after
+      <code>#</code>, which browsers never send to the server. Anyone with the full link can receive the file.
+    </footer>
+  </main>
+</body>
+</html>

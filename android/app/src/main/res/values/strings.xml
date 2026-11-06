@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">QR Transfer</string>
+    <string name="scan_title">Point the camera at the QR code</string>
+    <string name="scan_hint">Open the transfer link on another screen. Hold the phone 20–40 cm away.</string>
+    <string name="receiving">Receiving %1$s</string>
+    <string name="receiving_unknown">Receiving…</string>
+    <string name="chunks_progress">%1$d / %2$d chunks · %3$d %%</string>
+    <string name="waiting_first">Waiting for the first frame…</string>
+    <string name="stats">%1$s · %2$.1f frames/s · %3$d repeats</string>
+    <string name="manifest_ok">Key received</string>
+    <string name="manifest_wait">Waiting for key frame</string>
+    <string name="new_stream">The sender restarted the stream; starting over.</string>
+    <string name="finishing">Decrypting and verifying…</string>
+    <string name="done_title">Saved %1$s</string>
+    <string name="done_detail">%1$s · SHA-256 verified · Downloads/QR Transfer</string>
+    <string name="failed_title">Transfer failed</string>
+    <string name="permission_title">Camera access needed</string>
+    <string name="permission_detail">QR Transfer receives files only through the camera. Nothing is sent over the network.</string>
+    <string name="allow_camera">Allow camera</string>
+    <string name="open_settings">Open settings</string>
+    <string name="restart">Restart</string>
+    <string name="open">Open</string>
+    <string name="share">Share</string>
+    <string name="receive_another">Receive another</string>
+    <string name="try_again">Try again</string>
+    <string name="no_app_to_open">No app can open this file type.</string>
+</resources>

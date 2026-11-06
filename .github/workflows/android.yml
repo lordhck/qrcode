@@ -1,0 +1,87 @@
+# Builds the Android receiver APK on GitHub's runners (they have the
+# Android SDK and Google's Maven repository).
+#
+# Every push to main that touches android/ produces:
+#   - a workflow artifact "qr-transfer-apk"
+#   - the "apk" branch, force-pushed with the APK and the build log, so the
+#     latest build can be fetched with plain git:
+#       git fetch origin apk && git show origin/apk:qr-transfer-debug.apk > app.apk
+# Pushing a tag v* also attaches the APK to a GitHub release.
+
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        working-directory: android
+        shell: bash
+        run: |
+          set -o pipefail
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace :app:assembleDebug 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      - name: Upload artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qr-transfer-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Publish to the apk branch
+        # Runs on failure too, so the build log is always reachable via git.
+        if: always() && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_OK: ${{ job.status }}
+        run: |
+          out="$RUNNER_TEMP/apk-branch"
+          mkdir -p "$out"
+          cp "$RUNNER_TEMP/build.log" "$out/build.log" 2>/dev/null || echo "no build log" > "$out/build.log"
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          [[ -f "$apk" ]] && cp "$apk" "$out/qr-transfer-debug.apk"
+          printf 'commit: %s\nstatus: %s\nbuilt: %s\n' "$GITHUB_SHA" "$BUILD_OK" "$(date -u +%FT%TZ)" > "$out/BUILD.txt"
+          cd "$out"
+          git init -q -b apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Build ${GITHUB_SHA::7}: $BUILD_OK"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" apk
+
+      - name: Attach to release
+        if: success() && startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk "qr-transfer-${GITHUB_REF_NAME}.apk"
+          gh release create "$GITHUB_REF_NAME" "qr-transfer-${GITHUB_REF_NAME}.apk" --generate-notes

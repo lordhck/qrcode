@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Three finder-pattern squares and a data block: a stylised QR code. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M30,30h18v18h-18z M34,34v10h10v-10z M60,30h18v18h-18z M64,34v10h10v-10z M30,60h18v18h-18z M34,64v10h10v-10z"
+        android:fillType="evenOdd" />
+    <path android:fillColor="#FFFFFF" android:pathData="M37,37h4v4h-4z M67,37h4v4h-4z M37,67h4v4h-4z" />
+    <path android:fillColor="#5B9CFF" android:pathData="M60,60h7v7h-7z M71,60h7v7h-7z M60,71h7v7h-7z M71,71h7v7h-7z" />
+</vector>

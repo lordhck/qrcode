@@ -1,0 +1,14 @@
+{
+  "name": "qr-transfer",
+  "version": "0.1.0",
+  "description": "End-to-end encrypted file transfer over animated QR codes",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/main.js"
+  }
+}
