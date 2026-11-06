@@ -1,23 +1,17 @@
-# QR Transfer task runner. Settings are read from .env if present.
-set dotenv-load := true
+# QR Transfer task runner.
 
 # List available recipes
 default:
     @just --list
 
-# Run locally over plain HTTP on 127.0.0.1 (browsers treat localhost as secure)
-dev:
-    QRT_ENFORCE_HTTPS=false QRT_HOST=127.0.0.1 node server/main.js
+# Build the static website from web/ into public/
+build-web:
+    bash scripts/build-web.sh
 
-# Run with the configuration from the environment / .env
-run:
-    node server/main.js
-
-# Create a self-signed TLS certificate for LAN use (cert.pem, key.pem)
-cert host="localhost":
-    openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
-        -keyout key.pem -out cert.pem -subj "/CN={{host}}" \
-        -addext "subjectAltName=DNS:{{host}},DNS:localhost,IP:127.0.0.1"
+# Serve web/ locally (localhost counts as a secure context for WebCrypto)
+serve port="8000":
+    @echo "http://localhost:{{port}}"
+    cd web && python3 -m http.server {{port}} --bind 127.0.0.1
 
 # Build the Android APK locally (Linux or Termux; normally GitHub Actions does this)
 apk:
@@ -31,7 +25,7 @@ fetch-apk:
     git show origin/apk:qr-transfer-debug.apk > dist/qr-transfer-debug.apk
     @echo "dist/qr-transfer-debug.apk"
 
-# Remove local storage and build output
+# Remove build output
 clean:
-    rm -rf storage dist
+    rm -rf public dist
     bash android/build.sh clean

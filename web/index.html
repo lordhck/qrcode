@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="dark light">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="Send a file to your phone as animated QR codes. Encrypted in the browser, nothing is uploaded.">
+  <title>QR Transfer</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script type="module" src="assets/js/app.js"></script>
+</head>
+<body>
+  <main id="pick" class="wrap">
+    <header class="brand">
+      <h1>QR Transfer</h1>
+      <p class="muted">Send a file to your phone as animated QR codes. Encrypted in this browser, nothing is uploaded.</p>
+    </header>
+
+    <section class="card">
+      <label id="drop" class="drop" for="file">
+        <input id="file" type="file">
+        <strong id="dropTitle">Choose a file</strong>
+        <span id="dropHint" class="muted">or drop it here</span>
+        <span id="limit" class="muted small"></span>
+      </label>
+
+      <dl id="summary" class="facts" hidden>
+        <dt>File</dt><dd id="fileName"></dd>
+        <dt>Size</dt><dd id="fileSize"></dd>
+        <dt>Transfer</dt><dd id="estimate"></dd>
+      </dl>
+
+      <button id="start" class="primary" type="button" disabled>Start transfer</button>
+    </section>
+
+    <p id="error" class="error" role="alert" hidden></p>
+
+    <footer class="muted small">
+      Scan with the <strong>QR Transfer</strong> Android app. The file never leaves this
+      device except as the QR codes on your screen.
+    </footer>
+  </main>
+
+  <main id="stage" class="stage" hidden>
+    <header class="topbar">
+      <div class="title">
+        <h1 id="name"></h1>
+        <p id="facts" class="muted small"></p>
+      </div>
+      <button id="stop" type="button">Stop</button>
+    </header>
+
+    <div id="viewport" class="viewport">
+      <div class="qrbox"><canvas id="qr" aria-label="Animated QR code"></canvas></div>
+    </div>
+
+    <section class="status">
+      <div class="statusline">
+        <span id="frame">Frame –</span>
+        <span id="pass" class="muted">Pass 1</span>
+      </div>
+      <progress id="loop" max="1" value="0"></progress>
+    </section>
+
+    <section class="controls">
+      <label class="field">
+        <span>Speed <output id="fpsOut"></output></span>
+        <input id="fps" type="range" step="1">
+      </label>
+      <label class="field">
+        <span>Density</span>
+        <select id="density"></select>
+      </label>
+      <label class="field">
+        <span>Error correction</span>
+        <select id="ecc"></select>
+      </label>
+      <div class="row">
+        <button id="pause" type="button">Pause</button>
+        <button id="fullscreen" type="button">Fullscreen</button>
+      </div>
+    </section>
+
+    <p class="instructions muted small">
+      Open <strong>QR Transfer</strong> on your Android phone and point the camera at the code from
+      20–40 cm. Keep this page open until the phone reports the file as complete.
+      If the phone struggles, lower the density or the speed. Changing density restarts the stream.
+    </p>
+  </main>
+</body>
+</html>

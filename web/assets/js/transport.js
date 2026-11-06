@@ -1,4 +1,4 @@
-// QR density presets and transfer time estimates, shared by both pages.
+// QR density presets and transfer time estimates.
 
 import { chunkCount, framesPerLoop, OVERHEAD } from "./protocol.js";
 import { versionFor } from "./qr.js";

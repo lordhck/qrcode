@@ -5,11 +5,12 @@ implementation changed course, the change is noted in place.
 
 | Area | As built |
 |---|---|
-| Server | Node.js, built-in modules only (no npm packages). It was Python/Starlette first; FastAPI was dropped because `pydantic-core` won't build in Termux. |
-| Web | Vanilla JS, own QR encoder, WebCrypto |
+| Server | **None.** The upload/share-link server (§6.1–6.2, §5.2 URL fragment) was dropped. The web page encrypts the file and plays the QR stream straight from the sender's own screen, as in the "local mode" of §1.1. |
+| Web | Static HTML/CSS/vanilla JS in `web/`, own QR encoder, WebCrypto. Built into `public/` and deployed to GitHub Pages. |
 | Android | Kotlin, CameraX, ML Kit. The APK is built by GitHub Actions. |
-| Deployment | Plain `node server/main.js`; no Docker (it can't run in Termux) |
-| Tests | Dropped for the PoC, by decision |
+| Tests | Dropped for the PoC, by decision. |
+
+The QR protocol (§4) and the encryption format (§5.3) are unchanged. The key travels in the manifest frame (§5.2, option A). Sections about the server, the API and the share link describe the original design.
 
 ---
 
@@ -306,38 +307,26 @@ android/app/    MainActivity
 - **minSdk 29**, so the finished file goes straight into Downloads via MediaStore without storage permissions.
 - Frame processing runs on a single worker thread, off the main and camera threads.
 
-### 6.5 Deployment
+### 6.5 Deployment (as built)
 
-Docker was dropped: the target host includes Termux on Android, where Docker cannot run.
-
-- **Runtime:** `node server/main.js`. It needs no packages, so it runs the same on a Linux server and in Termux (`pkg install nodejs`).
-- **Config:** environment variables with a `QRT_` prefix, optionally loaded from `.env` by the justfile. Invalid values abort startup.
-- **HTTPS, two options:**
-  - **Reverse proxy:** the proxy terminates TLS, and `X-Forwarded-Proto` is trusted only from `QRT_TRUSTED_PROXIES`.
-  - **Built-in TLS:** set `QRT_SSL_CERTFILE` and `QRT_SSL_KEYFILE`. This suits Termux over the LAN; `just cert` makes a self-signed pair.
-  - Either way, the app sends HSTS over HTTPS, redirects plain-HTTP `GET`s and rejects other plain-HTTP requests.
-- **Process supervision:** systemd on servers, or `termux-services` on Android. Not part of the repo.
-- **Task runner:** a `justfile` (`dev`, `run`, `cert`, `apk`, `fetch-apk`, `clean`).
-- **Android build:** GitHub Actions (`.github/workflows/android.yml`) builds the APK, uploads it as an artifact and force-pushes it with the build log to the `apk` branch.
+- **Website:** `scripts/build-web.sh` builds `web/` into `public/`, with cache-busting `assets-<commit>/`. `.github/workflows/pages.yml` deploys it to GitHub Pages. All paths are relative, so it works under `/<repo>/` or a custom domain. Pages can't set HTTP headers, so the CSP is a `<meta>` tag with `connect-src 'none'`: the page can't send data anywhere.
+- **Android:** `.github/workflows/android.yml` builds the APK on GitHub's runners. It uploads it as an artifact and force-pushes it with the build log to the `apk` branch. `android/build.sh` builds locally (Linux or Termux).
+- **Task runner:** a `justfile` (`serve`, `build-web`, `apk`, `fetch-apk`, `clean`).
 
 ### 6.6 Project structure (as built)
 
 ```
-qr-transfer/
-├── server/
-│   ├── main.js        bootstrap, HTTP/HTTPS server, cleanup timer
-│   ├── routes.js      routing, pages, static files
-│   ├── http.js        security headers, HTTPS enforcement, proxy trust, body reading, rate limiter
-│   ├── transfers.js   transfer rules, validation, streaming upload
-│   ├── storage.js     blob store, atomic writes, expiry sweep
-│   └── config.js      QRT_* settings
-├── public/            see §6.3
-├── android/           core (Kotlin) + app (Android), build.sh for local builds
-├── .github/workflows/android.yml
+qrcode/
+├── web/
+│   ├── index.html         pick file → play QR stream
+│   └── assets/
+│       ├── css/app.css
+│       └── js/            app.js, player.js, qr.js, protocol.js, crypto.js, transport.js, ui.js
+├── scripts/build-web.sh   web/ → public/
+├── android/               core (Kotlin) + app (Android), build.sh for local builds
+├── .github/workflows/     pages.yml, android.yml
 ├── docs/ARCHITECTURE.md
-├── .env.example
 ├── justfile
-├── package.json       no dependencies
 └── README.md
 ```
 

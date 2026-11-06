@@ -27,16 +27,3 @@ export function formatDuration(seconds) {
   if (h > 0) return `${h} h ${String(m).padStart(2, "0")} min`;
   return s ? `${m} min ${String(s).padStart(2, "0")} s` : `${m} min`;
 }
-
-export function formatTtl(seconds) {
-  if (seconds % 86400 === 0) return `${seconds / 86400} day${seconds === 86400 ? "" : "s"}`;
-  if (seconds % 3600 === 0) return `${seconds / 3600} hour${seconds === 3600 ? "" : "s"}`;
-  return `${Math.round(seconds / 60)} minutes`;
-}
-
-export function errorMessage(err) {
-  if (err?.status === 413) return "The file is too large for this server.";
-  if (err?.status === 429) return "Too many transfers, wait a minute and try again.";
-  if (err?.status === 507) return "The server is out of space, try again later.";
-  return err?.message || String(err);
-}
