@@ -17,6 +17,7 @@ import java.io.IOException
 import java.util.ArrayDeque
 import java.util.BitSet
 import java.util.concurrent.Executor
+import kotlin.math.max
 
 /** Immutable progress snapshot for the UI. */
 data class Progress(
@@ -30,6 +31,10 @@ data class Progress(
     val map: BitSet,
     val complete: Boolean,
     val streamRestarted: Boolean,
+    /** Milliseconds since the first frame of this stream, or 0 before it. */
+    val elapsedMs: Long,
+    /** Rough estimate of the remaining time, or null while there is too little data. */
+    val etaMs: Long?,
 )
 
 sealed interface Outcome {
@@ -53,16 +58,19 @@ class ReceiveSession(
     private var meta: TransferMeta? = null
     private var restarted = false
     private var lastPublish = 0L
+    private var startedAt = 0L
     private val recentFrames = ArrayDeque<Long>()
 
     /** Executor thread. */
     fun onFrame(frame: Frame) {
         val event = receiver.feed(frame)
+        if (startedAt == 0L && receiver.total > 0) startedAt = SystemClock.uptimeMillis()
         recordFrame()
         when (event) {
             Receiver.Event.NEW_STREAM -> {
                 meta = null
                 restarted = true
+                startedAt = SystemClock.uptimeMillis()
             }
             Receiver.Event.MANIFEST -> readMetaEarly()
             else -> Unit
@@ -82,6 +90,7 @@ class ReceiveSession(
         store.delete()
         meta = null
         restarted = false
+        startedAt = 0L
         recentFrames.clear()
         publish(force = true)
     }
@@ -118,6 +127,17 @@ class ReceiveSession(
         }
     }
 
+    /**
+     * Linear estimate from the rate so far. Late chunks arrive slower (missed
+     * frames come back only on the next pass), so this is a lower bound.
+     */
+    private fun estimateRemaining(elapsed: Long): Long? {
+        val total = receiver.total
+        val got = receiver.received
+        if (total == 0 || got < max(3, total / 20) || elapsed < 2000 || got >= total) return null
+        return elapsed * (total - got) / got
+    }
+
     private fun recordFrame() {
         val now = SystemClock.uptimeMillis()
         recentFrames.addLast(now)
@@ -128,6 +148,7 @@ class ReceiveSession(
         val now = SystemClock.uptimeMillis()
         if (!force && now - lastPublish < 100) return
         lastPublish = now
+        val elapsed = if (startedAt == 0L) 0L else now - startedAt
         val snapshot = Progress(
             total = receiver.total,
             received = receiver.received,
@@ -139,6 +160,8 @@ class ReceiveSession(
             map = receiver.receivedSet(),
             complete = receiver.complete,
             streamRestarted = restarted,
+            elapsedMs = elapsed,
+            etaMs = estimateRemaining(elapsed),
         )
         restarted = false
         main.post { onProgress(snapshot) }

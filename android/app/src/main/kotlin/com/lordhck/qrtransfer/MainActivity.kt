@@ -8,9 +8,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.text.format.DateUtils
 import android.text.format.Formatter
 import android.util.Size
 import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
@@ -19,7 +22,9 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.ResolutionSelector
@@ -27,6 +32,9 @@ import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import com.lordhck.qrtransfer.receive.Outcome
 import com.lordhck.qrtransfer.receive.Progress
 import com.lordhck.qrtransfer.receive.ReceiveSession
@@ -34,12 +42,14 @@ import com.lordhck.qrtransfer.scan.FrameAnalyzer
 import com.lordhck.qrtransfer.ui.ChunkMapView
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
     private enum class State { PERMISSION, SCANNING, FINISHING, DONE, FAILED }
 
     private lateinit var preview: PreviewView
+    private lateinit var panel: View
     private lateinit var viewfinder: View
     private lateinit var title: TextView
     private lateinit var detail: TextView
@@ -55,6 +65,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var session: ReceiveSession
     private lateinit var analyzer: FrameAnalyzer
     private var cameraProvider: ProcessCameraProvider? = null
+    private var camera: Camera? = null
     private var state = State.PERMISSION
     private var lastOutcome: Outcome.Saved? = null
 
@@ -66,6 +77,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         preview = findViewById(R.id.preview)
+        panel = findViewById(R.id.panel)
         viewfinder = findViewById(R.id.viewfinder)
         title = findViewById(R.id.title)
         detail = findViewById(R.id.detail)
@@ -80,7 +92,48 @@ class MainActivity : AppCompatActivity() {
         session = ReceiveSession(applicationContext, worker, ::onProgress)
         analyzer = FrameAnalyzer(worker, session::onFrame, session::onUnreadable)
 
+        applyInsets()
+        setupCameraGestures()
+
         if (hasCameraPermission()) startScanning() else requestCamera.launch(Manifest.permission.CAMERA)
+    }
+
+    /** Android 15 draws edge-to-edge: keep the panel clear of the navigation bar. */
+    private fun applyInsets() {
+        val left = panel.paddingLeft
+        val right = panel.paddingRight
+        val bottom = panel.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(panel) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.updatePadding(left = left + bars.left, right = right + bars.right, bottom = bottom + bars.bottom)
+            insets
+        }
+    }
+
+    /** Pinch to zoom (dense codes from further away), tap to focus. */
+    private fun setupCameraGestures() {
+        val scale = ScaleGestureDetector(this, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                val cam = camera ?: return false
+                val state = cam.cameraInfo.zoomState.value ?: return false
+                val ratio = (state.zoomRatio * detector.scaleFactor).coerceIn(state.minZoomRatio, state.maxZoomRatio)
+                cam.cameraControl.setZoomRatio(ratio)
+                return true
+            }
+        })
+        preview.setOnTouchListener { view, event ->
+            scale.onTouchEvent(event)
+            if (event.action == MotionEvent.ACTION_UP && !scale.isInProgress && event.pointerCount == 1) {
+                camera?.let { cam ->
+                    val point = preview.meteringPointFactory.createPoint(event.x, event.y)
+                    cam.cameraControl.startFocusAndMetering(
+                        FocusMeteringAction.Builder(point).setAutoCancelDuration(3, TimeUnit.SECONDS).build(),
+                    )
+                }
+                view.performClick()
+            }
+            true
+        }
     }
 
     override fun onDestroy() {
@@ -114,12 +167,13 @@ class MainActivity : AppCompatActivity() {
                 .build()
                 .also { it.setAnalyzer(worker, analyzer) }
             provider.unbindAll()
-            provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, previewUseCase, analysis)
+            camera = provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, previewUseCase, analysis)
         }, ContextCompat.getMainExecutor(this))
     }
 
     private fun unbindCamera() {
         cameraProvider?.unbindAll()
+        camera = null
     }
 
     // -- States -----------------------------------------------------------------------
@@ -153,8 +207,10 @@ class MainActivity : AppCompatActivity() {
         }
         if (p.total > 0) {
             val percent = p.received * 100 / p.total
+            val time = if (p.elapsedMs > 0) " · " + DateUtils.formatElapsedTime(p.elapsedMs / 1000) else ""
+            val eta = p.etaMs?.let { " · " + getString(R.string.eta, DateUtils.formatElapsedTime(it / 1000)) } ?: ""
             detail.text = getString(R.string.chunks_progress, p.received, p.total, percent) +
-                (p.fileSize?.let { " · " + Formatter.formatShortFileSize(this, it) } ?: "")
+                (p.fileSize?.let { " · " + Formatter.formatShortFileSize(this, it) } ?: "") + time + eta
             progress.progress = p.received * 1000 / p.total
         }
         chunkMap.update(p.total, p.map)

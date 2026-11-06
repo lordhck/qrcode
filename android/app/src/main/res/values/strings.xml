@@ -6,6 +6,7 @@
     <string name="receiving">Receiving %1$s</string>
     <string name="receiving_unknown">Receiving…</string>
     <string name="chunks_progress">%1$d / %2$d chunks · %3$d %%</string>
+    <string name="eta">~%1$s left</string>
     <string name="waiting_first">Waiting for the first frame…</string>
     <string name="stats">%1$s · %2$.1f frames/s · %3$d repeats</string>
     <string name="manifest_ok">Key received</string>

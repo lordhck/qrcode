@@ -11,8 +11,13 @@ android {
         applicationId = "com.lordhck.qrtransfer"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
+
+        // Phones only; x86 builds are for emulators and add ~12 MB of ML Kit natives.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     buildTypes {
