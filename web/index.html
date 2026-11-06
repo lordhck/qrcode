@@ -38,6 +38,17 @@
 
     <p id="error" class="error" role="alert" hidden></p>
 
+    <!-- Shown by scripts/build-web.sh when an APK is bundled with the site. -->
+    <section id="app" class="card app" hidden>
+      <div class="app-text">
+        <h2>Receiver app for Android</h2>
+        <p class="muted small">Tap the button on your phone, or scan the code with the phone's camera.
+          Android asks you to allow installs from your browser the first time.</p>
+        <a id="apk" class="button primary" href="qr-transfer.apk" download="qr-transfer.apk">Download APK<span id="apkInfo"></span></a>
+      </div>
+      <canvas id="apkQr" class="app-qr" aria-label="QR code linking to the APK download"></canvas>
+    </section>
+
     <footer class="muted small">
       Scan with the <strong>QR Transfer</strong> Android app. The file never leaves this
       device except as the QR codes on your screen.

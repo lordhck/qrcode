@@ -64,6 +64,12 @@ At Standard / M / 10 fps, 1 MiB takes about 2 minutes per pass.
 
 ### Getting the APK
 
+The website offers the latest build at `qr-transfer.apk`, with a download button and
+a QR code to scan with the phone's camera. After every successful Android build, the
+Pages workflow picks up the new APK from the `apk` branch and redeploys the site.
+
+Other ways:
+
 `.github/workflows/android.yml` builds it on every push to `main` that touches
 `android/`:
 

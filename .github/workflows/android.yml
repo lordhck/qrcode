@@ -68,7 +68,8 @@ jobs:
           cp "$RUNNER_TEMP/build.log" "$out/build.log" 2>/dev/null || echo "no build log" > "$out/build.log"
           apk=android/app/build/outputs/apk/debug/app-debug.apk
           [[ -f "$apk" ]] && cp "$apk" "$out/qr-transfer-debug.apk"
-          printf 'commit: %s\nstatus: %s\nbuilt: %s\n' "$GITHUB_SHA" "$BUILD_OK" "$(date -u +%FT%TZ)" > "$out/BUILD.txt"
+          version="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' android/app/build.gradle.kts)"
+          printf 'commit: %s\nstatus: %s\nversion: %s\nbuilt: %s\n' "$GITHUB_SHA" "$BUILD_OK" "$version" "$(date -u +%FT%TZ)" > "$out/BUILD.txt"
           cd "$out"
           git init -q -b apk
           git config user.name "github-actions[bot]"

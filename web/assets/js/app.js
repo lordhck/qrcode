@@ -3,6 +3,7 @@
 
 import * as crypto from "./crypto.js";
 import { Player, Renderer } from "./player.js";
+import { encodeBytes } from "./qr.js";
 import {
   CIPHERTEXT_OVERHEAD, DEFAULT_DENSITY, DEFAULT_ECC, DENSITIES, ECC_LEVELS, estimate,
 } from "./transport.js";
@@ -23,6 +24,7 @@ const els = {
   frame: $("#frame"), pass: $("#pass"), loop: $("#loop"),
   fps: $("#fps"), fpsOut: $("#fpsOut"), density: $("#density"), ecc: $("#ecc"),
   pause: $("#pause"), fullscreen: $("#fullscreen"), stop: $("#stop"),
+  app: $("#app"), apk: $("#apk"), apkQr: $("#apkQr"),
 };
 
 let selected = null;
@@ -144,9 +146,41 @@ function stop() {
   show(els.pick);
 }
 
+// -- App download --------------------------------------------------------------------
+
+/** Static QR code of a URL, crisp at the canvas' CSS size. */
+function drawStaticQr(canvas, text) {
+  const qr = encodeBytes(new TextEncoder().encode(text), { ecc: "M" });
+  const dpr = window.devicePixelRatio || 1;
+  const modules = qr.size + 8; // 4-module quiet zone on each side
+  const cssSize = canvas.getBoundingClientRect().width || 132;
+  const scale = Math.max(1, Math.floor((cssSize * dpr) / modules));
+  const px = scale * modules;
+  canvas.width = px;
+  canvas.height = px;
+  canvas.style.width = `${px / dpr}px`;
+  canvas.style.height = `${px / dpr}px`;
+  const ctx = canvas.getContext("2d", { alpha: false });
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, px, px);
+  ctx.fillStyle = "#000";
+  for (let y = 0; y < qr.size; y++) {
+    for (let x = 0; x < qr.size; x++) {
+      if (qr.modules[y * qr.size + x]) ctx.fillRect((x + 4) * scale, (y + 4) * scale, scale, scale);
+    }
+  }
+}
+
+function setupAppDownload() {
+  // The download card only exists in builds that bundle an APK.
+  if (els.app.hidden) return;
+  drawStaticQr(els.apkQr, els.apk.href);
+}
+
 // -- Setup ---------------------------------------------------------------------------
 
 function init() {
+  setupAppDownload();
   try {
     crypto.assertSupported();
   } catch (err) {

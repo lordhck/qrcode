@@ -142,6 +142,20 @@ progress { width: 100%; height: 6px; accent-color: var(--accent); }
 
 footer { padding: 0 0.25rem; }
 
+/* -- App download --------------------------------------------------------- */
+
+.app { grid-template-columns: 1fr auto; align-items: center; }
+.app h2 { margin: 0 0 0.35rem; }
+.app p { margin: 0 0 0.9rem; }
+.app .button { display: inline-block; }
+.app #apkInfo { font-weight: 400; opacity: 0.85; margin-left: 0.4rem; }
+.app-qr { width: 132px; height: 132px; background: #fff; border-radius: 6px; image-rendering: pixelated; }
+
+@media (max-width: 640px) {
+  .app { grid-template-columns: 1fr; }
+  .app-qr { display: none; } /* already on the phone: the button is enough */
+}
+
 /* -- Transfer page ------------------------------------------------------ */
 
 .stage {

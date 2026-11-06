@@ -1,5 +1,9 @@
 # Builds the static website (web/ -> public/) and deploys it to GitHub Pages.
 #
+# Runs on changes to the website and after every successful Android build, so
+# the site always offers the latest APK (taken from the "apk" branch) at
+# qr-transfer.apk.
+#
 # Pages is enabled automatically on first run (Source: GitHub Actions). If that
 # is refused, set it once under Settings -> Pages -> Source: "GitHub Actions".
 
@@ -12,6 +16,10 @@ on:
       - "web/**"
       - "scripts/build-web.sh"
       - ".github/workflows/pages.yml"
+  workflow_run:
+    workflows: ["Android APK"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -25,16 +33,35 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Fetch the latest APK
+        id: apk
+        shell: bash
+        run: |
+          if git fetch -q --depth 1 origin apk 2>/dev/null \
+             && git show FETCH_HEAD:qr-transfer-debug.apk > "$RUNNER_TEMP/qr-transfer.apk" 2>/dev/null; then
+            version="$(git show FETCH_HEAD:BUILD.txt | sed -n 's/^version: //p')"
+            echo "path=$RUNNER_TEMP/qr-transfer.apk" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "Found APK ${version:-(unknown version)}"
+          else
+            echo "No APK on the apk branch yet; building the site without it."
+          fi
 
       - name: Build static site into public/
+        env:
+          QRT_APK: ${{ steps.apk.outputs.path }}
+          QRT_APK_VERSION: ${{ steps.apk.outputs.version }}
         run: bash scripts/build-web.sh
 
       - uses: actions/configure-pages@v5
         with:
-          # Enables Pages (source: GitHub Actions) if it is not enabled yet.
           enablement: true
 
       - uses: actions/upload-pages-artifact@v3
