@@ -1,6 +1,7 @@
 # Builds the static website (web/ -> public/) and deploys it to GitHub Pages.
 #
-# One-time setup: repository Settings -> Pages -> Source: "GitHub Actions".
+# Pages is enabled automatically on first run (Source: GitHub Actions). If that
+# is refused, set it once under Settings -> Pages -> Source: "GitHub Actions".
 
 name: Website
 
@@ -32,6 +33,9 @@ jobs:
         run: bash scripts/build-web.sh
 
       - uses: actions/configure-pages@v5
+        with:
+          # Enables Pages (source: GitHub Actions) if it is not enabled yet.
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
